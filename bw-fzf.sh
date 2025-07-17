@@ -16,6 +16,9 @@ NO_PREVIEW=0
 if [ "$XDG_SESSION_TYPE" = "wayland" ]; then
   CLIP_COMMAND="wl-copy"
   CLIP_ARGS=""
+elif [[ $(uname) == "Darwin" ]]; then
+  CLIP_COMMAND="pbcopy"
+  CLIP_ARGS=""
 else
   CLIP_COMMAND="xclip"
   CLIP_ARGS="-selection clipboard"
@@ -46,7 +49,9 @@ function monitor_inactivity() {
   while true; do
     sleep 1
     if [[ -f "$TIMESTAMP_FILE" ]]; then
-      if [[ $(expr "$(date +%s)" - "$(stat -c %Y "$TIMESTAMP_FILE")") -ge ${TIMEOUT%s} ]]; then
+      mod_time=$(date -r "$TIMESTAMP_FILE" +%s 2>/dev/null || stat -f %m "$TIMESTAMP_FILE" 2>/dev/null || stat -c %Y "$TIMESTAMP_FILE" 2>/dev/null)
+      time_diff=$(expr "$(date +%s)" - "$mod_time")
+      if [[ $time_diff -ge ${TIMEOUT%s} ]]; then
         echo -e "\nSession timed out after ${TIMEOUT}"
         cleanup
         exit 1
